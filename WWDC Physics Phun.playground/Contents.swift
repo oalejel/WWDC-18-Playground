@@ -16,6 +16,30 @@ import SpriteKit
 
 public class SpaceScene: SKScene {
     
+    class ControlView: UIView {
+        var scene: SpaceScene!
+        var speedSlider: UISlider!
+        
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+
+            let sliderW: CGFloat = 200
+            speedSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderW, height: 30))
+            speedSlider.minimumValue = Float(1 / 365)
+            speedSlider.isContinuous = true
+            speedSlider.maximumValue = 2
+            speedSlider.center = CGPoint(x: sliderW * 0.5 + 8, y: 10)
+            
+            speedSlider.addTarget(scene, action: #selector(adjustSpeed(sender:)), for: .valueChanged)
+            
+            addSubview(speedSlider)
+        }
+        
+        required init?(coder aDecoder: NSCoder) {
+            super.init(coder: aDecoder)
+        }
+    }
+    
     var sunNode: SKShapeNode!
     var mercuryNode: SKShapeNode!
     var venusNode: SKShapeNode!
@@ -27,10 +51,18 @@ public class SpaceScene: SKScene {
     var neptuneNode: SKShapeNode!
     
     public override func didMove(to view: SKView) {
+        
+        
         backgroundColor = .black
+        let height = view.frame.size.height
+        let controlFrame = CGRect(x: 0, y: height - 50, width: view.frame.width, height: 100)
+        let controlView = ControlView(frame: controlFrame)
+        controlView.scene = self
+        controlView.backgroundColor = .red
+        view.addSubview(controlView)
         
 //:Sprinkle in some stars ✨
-        sprinkleStars(count: 140)
+        sprinkleStars(count: 100)
         
         sunNode = SKShapeNode(circleOfRadius: 10)
         sunNode.fillColor = .yellow
@@ -46,6 +78,8 @@ public class SpaceScene: SKScene {
         saturnNode = addPlanet(radius: 190, orbitYears: 29, angleOffset: Double.pi * 1.5, color: .white)
         uranusNode = addPlanet(radius: 220, orbitYears: 84, angleOffset: Double.pi * 0.2, color: .cyan)
         neptuneNode = addPlanet(radius: 250, orbitYears: 165, angleOffset: Double.pi * 1.91, color: .blue)
+        
+        
         // not a planet :(
         //WARNING: MAKE THIS PART Of THE PLAYGROUND EXPERIENCE!!
 //        let pluto = addPlanet(radius: 110, orbitYears: 248, color: .gray)
@@ -53,19 +87,26 @@ public class SpaceScene: SKScene {
        let fireEmitter = SKEmitterNode(fileNamed: "FireParticle.sks")
         fireEmitter?.position = .zero
         addChild(fireEmitter!)
-        
-        //        let height = view.frame.height
-        //        let pickerRect = CGRect(x: 0, y: height - 50, width: view.frame.width, height: 100)
-        //        let pickerView = SKView(frame: pickerRect)
-        //        pickerView.backgroundColor = SKColor.green
-        //        view.addSubview(pickerView)
+    }
+    
+    @objc func adjustSpeed(sender: UISlider) {
+        let s = SKAction.speed(to: 0.5, duration: 0.5)
+        run(s)
     }
     
     func sprinkleStars(count: Int) {
+        //create twinkle animations
+        let fadeIn = SKAction.fadeIn(withDuration: 0.5)
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+        let wait = SKAction.wait(forDuration: 2, withRange: 10)
+        let glow = SKAction.repeatForever(.sequence([wait, fadeOut, fadeIn]))
+        
+        //generate the stars with random points
         for _ in 0..<count {
             let x = Int(arc4random()) % Int(view!.frame.size.width * 2) - Int(view!.frame.size.width)
             let y =  Int(arc4random()) % Int(view!.frame.size.height * 2) - Int(view!.frame.size.height)
-            addStar(x: CGFloat(x), y: CGFloat(y))
+            
+            addStar(x: CGFloat(x), y: CGFloat(y)).run(glow)
         }
     }
     
@@ -73,54 +114,38 @@ public class SpaceScene: SKScene {
         // Called before each frame is rendered
     }
     
-    
     // takes orbit radius, earth years for orbit, offset angle (polar coordiantes), and a color for a planet node to be added to the scene
     func addPlanet(radius: CGFloat, orbitYears: CGFloat, angleOffset: Double, color: SKColor) -> SKShapeNode {
         
         let planetNode = SKShapeNode(circleOfRadius: 5)
         planetNode.strokeColor = .clear
         planetNode.fillColor = color
-        planetNode.position = CGPoint(x: CGFloat(cos(angleOffset)) * radius, y: CGFloat(sin(angleOffset)) * radius)
+        planetNode.position = .zero
+        
+        //CGPoint(x: CGFloat(cos(angleOffset)) * radius, y: CGFloat(sin(angleOffset)) * radius)
         
         addChild(planetNode)
         
-        let path = UIBezierPath(ovalIn: CGRect(x: -1 * radius, y: -1 * radius, width: 2 * radius, height: 2 * radius))
-//        path.addArc(withCenter: .zero, radius: radius, startAngle: CGFloat(angleOffset), endAngle: CGFloat(2 * Double.pi - angleOffset), clockwise: true)
-//        path.addArc(withCenter: .zero, radius: radius, startAngle: CGFloat(2 * Double.pi - angleOffset), endAngle: CGFloat(angleOffset), clockwise: true)
-        
-        
-        path.move(to: planetNode.position)
-//        path.close()
-//
-//        let xPath = CGPath(ellipseIn: r, transform: CGAffineTransform(rotationAngle: CGFloat(angleOffset)))
-        
-        let orbit = SKAction.follow(path.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
+        let orbitPath = UIBezierPath(ovalIn: CGRect(x: -1 * radius, y: -1 * radius, width: 2 * radius, height: 2 * radius))
+        orbitPath.move(to: planetNode.position)
 
-        
-//        let path1 = UIBezierPath(arcCenter: .zero, radius: radius, startAngle: CGFloat(angleOffset), endAngle: CGFloat(2 * Double.pi - angleOffset), clockwise: true)
-//        let path2 = UIBezierPath(arcCenter: .zero, radius: radius, startAngle: CGFloat(2 * Double.pi - angleOffset), endAngle: CGFloat(angleOffset), clockwise: true)
-//        let orbit1 = SKAction.follow(path1.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
-//        let orbit2 = SKAction.follow(path2.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
-//        let move = SKAction.move(to: planetNode.position, duration: 0)
-        
-        planetNode.run(.repeatForever(.group([move, orbit])))
+        let orbit = SKAction.follow(orbitPath.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
+        let readjust = SKAction.move(to:CGPoint(x: radius, y: 0), duration: 0)
+        planetNode.run(.repeatForever(.group([readjust, orbit])))
         
         return planetNode
     }
     
-    func addStar(x: CGFloat, y: CGFloat) {
-        let fadeIn = SKAction.fadeIn(withDuration: 0.5)
-        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
-        let wait = SKAction.wait(forDuration: 2, withRange: 10)
-        let glow = SKAction.repeatForever(.sequence([wait, fadeOut, fadeIn]))
-        
+    func addStar(x: CGFloat, y: CGFloat) -> SKShapeNode {
         let star = SKShapeNode(circleOfRadius: 0.5)
         star.fillColor = .white
         star.position = CGPoint(x: x, y: y)
-        star.run(glow)
         addChild(star)
+        return star
     }
 }
+
+
 
 
 
