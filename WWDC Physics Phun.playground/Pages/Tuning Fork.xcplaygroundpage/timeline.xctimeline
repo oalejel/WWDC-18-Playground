@@ -2,5 +2,10 @@
 <Timeline
    version = "3.0">
    <TimelineItems>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "file:///Users/omaralejel/Desktop/WWDC/WWDC%20Physics%20Phun.playground/Pages/Tuning%20Fork.xcplaygroundpage#CharacterRangeLen=10&amp;CharacterRangeLoc=4797&amp;EndingColumnNumber=23&amp;EndingLineNumber=129&amp;StartingColumnNumber=13&amp;StartingLineNumber=129&amp;Timestamp=543970178.512831"
+         selectedRepresentationIndex = "0"
+         shouldTrackSuperviewWidth = "NO">
+      </LoggerValueHistoryTimelineItem>
    </TimelineItems>
 </Timeline>

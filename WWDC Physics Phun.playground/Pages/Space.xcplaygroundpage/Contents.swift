@@ -1,4 +1,3 @@
-//: [Previous](@previous)
 
 //: Physics Phun 🚀⚡️🛰
 //: Physics Phun is a physics simulator for exploring fascinating phenomena made with SpriteKit, AVFoundation, and
