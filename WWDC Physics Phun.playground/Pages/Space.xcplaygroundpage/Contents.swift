@@ -1,3 +1,5 @@
+//: [Previous](@previous)
+
 //: Physics Phun 🚀⚡️🛰
 //: Physics Phun is a physics simulator for exploring fascinating phenomena made with SpriteKit, AVFoundation, and
 
@@ -11,6 +13,8 @@ import SpriteKit
  have transitions like animating into a planet for some close-earth physics concept
  
  IMPORTANT: must give ability to add pluto back in a fun uncommenting feature!!!
+ 
+ teach how accelration or force of gravity has a __ proportion to radius, and how velocity has an inverse root relation
  
  */
 
@@ -26,7 +30,7 @@ public class SpaceScene: SKScene {
         
         override init(frame: CGRect) {
             super.init(frame: frame)
-
+            
             let buttonRect = CGRect(x: 0, y: 0, width: 170, height: 50)
             accelerationButton = SqueezeButton(frame: buttonRect)
             accelerationButton.backgroundColor = .white
@@ -67,6 +71,7 @@ public class SpaceScene: SKScene {
         }
         
         @objc func accPressed() {
+            scene.accButtonPressed()
             if accelerationButton.tag == 0 {
                 accelerationButton.setTitleColor(.red, for: .normal)
                 accelerationButton.setTitle("Hide Acceleration", for: .normal)
@@ -79,6 +84,7 @@ public class SpaceScene: SKScene {
         }
         
         @objc func velPressed() {
+            scene.velButtonPressed()
             if velocityButton.tag == 0 {
                 velocityButton.setTitleColor(UIColor(red: 0, green: 0.8, blue: 0, alpha: 1), for: .normal)
                 velocityButton.setTitle("Hide Velocity", for: .normal)
@@ -108,10 +114,11 @@ public class SpaceScene: SKScene {
     var saturnNode: SKShapeNode!
     var uranusNode: SKShapeNode!
     var neptuneNode: SKShapeNode!
+    var planets: [SKShapeNode] = []
     let arrowTexture = SKTexture(imageNamed: "arrow")
     
     public override func didMove(to view: SKView) {
-    
+        
         backgroundColor = .black
         let height = view.frame.size.height
         let controlFrame = CGRect(x: 0, y: height - 50, width: view.frame.width, height: 100)
@@ -121,7 +128,7 @@ public class SpaceScene: SKScene {
         controlView.backgroundColor = .clear
         view.addSubview(controlView)
         
-//:Sprinkle in some stars ✨
+        //:Sprinkle in some stars ✨
         sprinkleStars(count: 100)
         
         sunNode = SKShapeNode(circleOfRadius: 10)
@@ -130,21 +137,21 @@ public class SpaceScene: SKScene {
         sunNode.position = .zero
         addChild(sunNode)
         
-        mercuryNode = addPlanet(radius: 40, orbitYears: 0.24, angleOffset: Double.pi - 0.1, color: SKColor(displayP3Red: 0.8, green: 0, blue: 0, alpha: 1))
-        venusNode = addPlanet(radius: 70, orbitYears: 0.616, angleOffset: Double.pi * 0.3, color: .brown)
-        earthNode = addPlanet(radius: 100, orbitYears: 1, angleOffset: Double.pi + 0.1, color: .blue)
-        marsNode = addPlanet(radius: 130, orbitYears: 1.88, angleOffset: Double.pi * 1.2, color: .red)
-        jupiterNode = addPlanet(radius: 160, orbitYears: 12, angleOffset: Double.pi * 1.12, color: .orange)
-        saturnNode = addPlanet(radius: 190, orbitYears: 29, angleOffset: Double.pi * 1.5, color: .white)
-        uranusNode = addPlanet(radius: 220, orbitYears: 84, angleOffset: Double.pi * 0.2, color: .cyan)
-        neptuneNode = addPlanet(radius: 250, orbitYears: 165, angleOffset: Double.pi * 1.91, color: .blue)
+        mercuryNode = addPlanet(radius: 60, orbitYears: 0.24, angleOffset: Double.pi - 0.1, color: SKColor(displayP3Red: 0.8, green: 0, blue: 0, alpha: 1))
+        venusNode = addPlanet(radius: 90, orbitYears: 0.616, angleOffset: Double.pi * 0.3, color: .brown)
+        earthNode = addPlanet(radius: 120, orbitYears: 1, angleOffset: Double.pi + 0.1, color: .blue)
+        marsNode = addPlanet(radius: 150, orbitYears: 1.88, angleOffset: Double.pi * 1.2, color: .red)
+        jupiterNode = addPlanet(radius: 180, orbitYears: 12, angleOffset: Double.pi * 1.12, color: .orange)
+        saturnNode = addPlanet(radius: 210, orbitYears: 29, angleOffset: Double.pi * 1.5, color: .white)
+        uranusNode = addPlanet(radius: 230, orbitYears: 84, angleOffset: Double.pi * 0.2, color: .cyan)
+        neptuneNode = addPlanet(radius: 270, orbitYears: 165, angleOffset: Double.pi * 1.91, color: .blue)
         
         
         // not a planet :(
         //WARNING: MAKE THIS PART Of THE PLAYGROUND EXPERIENCE!!
-//        let pluto = addPlanet(radius: 110, orbitYears: 248, color: .gray)
+        //        let pluto = addPlanet(radius: 410, orbitYears: 248, angleOffset: 0, color: #colorLiteral(red: 0.9764705896, green: 0.850980401, blue: 0.5490196347, alpha: 1))
         
-       let fireEmitter = SKEmitterNode(fileNamed: "FireParticle.sks")
+        let fireEmitter = SKEmitterNode(fileNamed: "FireParticle.sks")
         fireEmitter?.position = .zero
         addChild(fireEmitter!)
     }
@@ -170,6 +177,22 @@ public class SpaceScene: SKScene {
         }
     }
     
+    func accButtonPressed() {
+        for planet in planets {
+            if let accArrow = planet.childNode(withName: "accArrow") {
+                accArrow.isHidden = !accArrow.isHidden
+            }
+        }
+    }
+    
+    func velButtonPressed() {
+        for planet in planets {
+            if let accArrow = planet.childNode(withName: "velArrow") {
+                accArrow.isHidden = !accArrow.isHidden
+            }
+        }
+    }
+    
     public override func update(_ currentTime: TimeInterval) {
         // Called before each frame is rendered
     }
@@ -177,17 +200,34 @@ public class SpaceScene: SKScene {
     // takes orbit radius, earth years for orbit, offset angle (polar coordiantes), and a color for a planet node to be added to the scene
     func addPlanet(radius: CGFloat, orbitYears: CGFloat, angleOffset: Double, color: SKColor) -> SKShapeNode {
         
-        let arrowNode = SKSpriteNode(texture: arrowTexture)
-        arrowNode.color = .green
-        arrowNode.colorBlendFactor = 1
-        arrowNode.size = CGSize(width: 1, height: 1)
+        //arrow node for acceleration
+        let accArrowNode = SKSpriteNode(texture: arrowTexture)
+        accArrowNode.color = .red
+        accArrowNode.colorBlendFactor = 1
+        accArrowNode.size = CGSize(width: (100 / radius) * 23, height: 8)
+        accArrowNode.anchorPoint = CGPoint(x: 1, y: 0.5)
+        accArrowNode.name = "accArrow"
+        accArrowNode.isHidden = true
+        
+        //arrow node for velocity
+        let velArrowNode = SKSpriteNode(texture: arrowTexture)
+        velArrowNode.color = .green
+        velArrowNode.colorBlendFactor = 1
+        velArrowNode.size = CGSize(width: (100 / radius) * 23, height: 8)
+        velArrowNode.anchorPoint = CGPoint(x: 1, y: 0.5)
+        velArrowNode.zRotation = CGFloat(Double.pi / -2)
+        velArrowNode.name = "velArrow"
+        velArrowNode.isHidden = true
         
         let planetNode = SKShapeNode(circleOfRadius: 5)
         planetNode.strokeColor = .clear
         planetNode.fillColor = color
         planetNode.position = .zero
         
-        planetNode.addChild(arrowNode)
+        planetNode.addChild(accArrowNode)
+        accArrowNode.zPosition = -1
+        planetNode.addChild(velArrowNode)
+        velArrowNode.zPosition = -1
         
         //CGPoint(x: CGFloat(cos(angleOffset)) * radius, y: CGFloat(sin(angleOffset)) * radius)
         
@@ -195,11 +235,12 @@ public class SpaceScene: SKScene {
         
         let orbitPath = UIBezierPath(ovalIn: CGRect(x: -1 * radius, y: -1 * radius, width: 2 * radius, height: 2 * radius))
         orbitPath.move(to: planetNode.position)
-
+        
         let orbit = SKAction.follow(orbitPath.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
         let readjust = SKAction.move(to:CGPoint(x: radius, y: 0), duration: 0)
         planetNode.run(.repeatForever(.group([readjust, orbit])))
         
+        planets.append(planetNode)
         return planetNode
     }
     
@@ -236,3 +277,5 @@ if let scene = SpaceScene(fileNamed: "SpaceScene.sks") {
 
 
 PlaygroundSupport.PlaygroundPage.current.liveView = sceneView
+
+//: [Next](@next)
