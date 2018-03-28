@@ -19,20 +19,79 @@ public class SpaceScene: SKScene {
     class ControlView: UIView {
         var scene: SpaceScene!
         var speedSlider: UISlider!
+        var speedLabel: UILabel!
+        
+        var accelerationButton: SqueezeButton!
+        var velocityButton: SqueezeButton!
         
         override init(frame: CGRect) {
             super.init(frame: frame)
 
+            let buttonRect = CGRect(x: 0, y: 0, width: 170, height: 50)
+            accelerationButton = SqueezeButton(frame: buttonRect)
+            accelerationButton.backgroundColor = .white
+            accelerationButton.setTitle("Show Acceleration", for: .normal)
+            accelerationButton.center = CGPoint(x: frame.size.width / 2, y: frame.size.height / 5)
+            accelerationButton.setTitleColor(.darkGray, for: .normal)
+            
+            velocityButton = SqueezeButton(frame: buttonRect)
+            velocityButton.backgroundColor = .white
+            velocityButton.setTitle("Show Velocity", for: .normal)
+            velocityButton.center = CGPoint(x: frame.size.width * 0.8, y: frame.size.height / 5)
+            velocityButton.setTitleColor(.darkGray, for: .normal)
+            
+            
+            accelerationButton.addTarget(self, action: #selector(accPressed), for: .touchUpInside)
+            velocityButton.addTarget(self, action: #selector(velPressed), for: .touchUpInside)
+            
+            addSubview(accelerationButton)
+            addSubview(velocityButton)
+            
+            
             let sliderW: CGFloat = 200
             speedSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderW, height: 30))
             speedSlider.minimumValue = Float(1 / 365)
             speedSlider.isContinuous = true
             speedSlider.maximumValue = 2
-            speedSlider.center = CGPoint(x: sliderW * 0.5 + 8, y: 10)
+            speedSlider.center = CGPoint(x: sliderW * 0.5 + 8, y: frame.size.height / 4)
+            speedSlider.value = 1
             
-            speedSlider.addTarget(scene, action: #selector(adjustSpeed(sender:)), for: .valueChanged)
+            speedSlider.addTarget(self, action: #selector(speedChanged(sender:)), for: .valueChanged)
             
+            speedLabel = UILabel(frame: CGRect(x: 0, y: 0, width: sliderW, height: 30))
+            speedLabel.center = CGPoint(x: speedSlider.center.x, y: speedSlider.frame.origin.y - 12)
+            speedLabel.text = "\(Int(speedSlider.value * 365)) day(s) per second"
+            speedLabel.textColor = .white
+            addSubview(speedLabel)
             addSubview(speedSlider)
+        }
+        
+        @objc func accPressed() {
+            if accelerationButton.tag == 0 {
+                accelerationButton.setTitleColor(.red, for: .normal)
+                accelerationButton.setTitle("Hide Acceleration", for: .normal)
+                accelerationButton.tag = 1
+            } else {
+                accelerationButton.setTitleColor(.darkGray, for: .normal)
+                accelerationButton.setTitle("Show Acceleration", for: .normal)
+                accelerationButton.tag = 0
+            }
+        }
+        
+        @objc func velPressed() {
+            if velocityButton.tag == 0 {
+                velocityButton.setTitleColor(UIColor(red: 0, green: 0.8, blue: 0, alpha: 1), for: .normal)
+                velocityButton.setTitle("Hide Velocity", for: .normal)
+                velocityButton.tag = 1
+            } else {
+                velocityButton.setTitleColor(.darkGray, for: .normal)
+                velocityButton.setTitle("Show Velocity", for: .normal)
+                velocityButton.tag = 0
+            }
+        }
+        
+        @objc func speedChanged(sender: UISlider) {
+            speedLabel.text = "\(Int(sender.value * 365 + 1)) day(s) per second"
         }
         
         required init?(coder aDecoder: NSCoder) {
@@ -49,16 +108,17 @@ public class SpaceScene: SKScene {
     var saturnNode: SKShapeNode!
     var uranusNode: SKShapeNode!
     var neptuneNode: SKShapeNode!
+    let arrowTexture = SKTexture(imageNamed: "arrow")
     
     public override func didMove(to view: SKView) {
-        
-        
+    
         backgroundColor = .black
         let height = view.frame.size.height
         let controlFrame = CGRect(x: 0, y: height - 50, width: view.frame.width, height: 100)
         let controlView = ControlView(frame: controlFrame)
         controlView.scene = self
-        controlView.backgroundColor = .red
+        controlView.speedSlider.addTarget(self, action: #selector(adjustSpeed(sender:)), for: UIControlEvents.touchUpInside)
+        controlView.backgroundColor = .clear
         view.addSubview(controlView)
         
 //:Sprinkle in some stars ✨
@@ -90,8 +150,8 @@ public class SpaceScene: SKScene {
     }
     
     @objc func adjustSpeed(sender: UISlider) {
-        let s = SKAction.speed(to: 0.5, duration: 0.5)
-        run(s)
+        let changeSpeed = SKAction.speed(to: CGFloat(sender.value), duration: 1)
+        run(changeSpeed)//.repeatForever(changeSpeed))
     }
     
     func sprinkleStars(count: Int) {
@@ -117,10 +177,17 @@ public class SpaceScene: SKScene {
     // takes orbit radius, earth years for orbit, offset angle (polar coordiantes), and a color for a planet node to be added to the scene
     func addPlanet(radius: CGFloat, orbitYears: CGFloat, angleOffset: Double, color: SKColor) -> SKShapeNode {
         
+        let arrowNode = SKSpriteNode(texture: arrowTexture)
+        arrowNode.color = .green
+        arrowNode.colorBlendFactor = 1
+        arrowNode.size = CGSize(width: 1, height: 1)
+        
         let planetNode = SKShapeNode(circleOfRadius: 5)
         planetNode.strokeColor = .clear
         planetNode.fillColor = color
         planetNode.position = .zero
+        
+        planetNode.addChild(arrowNode)
         
         //CGPoint(x: CGFloat(cos(angleOffset)) * radius, y: CGFloat(sin(angleOffset)) * radius)
         
