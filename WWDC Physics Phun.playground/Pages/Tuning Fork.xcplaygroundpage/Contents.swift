@@ -57,23 +57,39 @@ class TuningFork: SKSpriteNode {
     // height of tines added to top of fork – based on freq.
     var tineHeight: CGFloat!
     var freqLabel: SKLabelNode!
+    let emitter = SKEmitterNode(fileNamed: "WaveEmitter")
     
     func play() {
         //change this to be based on actual sound output
         if !playing {
-//            let emitter = SKEmitterNode(fileNamed: "WaveEmitter")
-//            emitter?.position = CGPoint(x: 0, y: -120 + tineHeight + frame.size.height / 2)
-//            addChild(emitter!)
+            emitter?.position = CGPoint(x: 0, y: -120 + tineHeight + frame.size.height / 2)
+            emitter?.alpha = 0
+            if emitter?.parent == nil {
+                addChild(emitter!)
+            }
+            
+            let fadeIn = SKAction.fadeIn(withDuration: 0.5)
+            //we keep our tune playing for 8 seconds
+            let delay = SKAction.wait(forDuration: 3)
+            //WARNING!!! ^^ make this delay longer once done testing
+            let fadeOut = SKAction.fadeOut(withDuration: 0.8)
+            
+            let resetState = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
+                //reset state, which includes playing bool
+                self.playing = false
+//                self.emitter?.removeFromParent()
+            })
+            
+            let soundSequence = SKAction.sequence([fadeIn, delay, fadeOut, resetState])
+            emitter?.run(soundSequence)
 //            let x = TunePlayer()
 //            x.play()
+            playing = true
         }
     }
 }
 
 public class TuneScene: SKScene {
-    
-    
-    
 //    class ControlView: UIView {
 //
 //
@@ -104,7 +120,7 @@ public class TuneScene: SKScene {
     
     public override func didMove(to view: SKView) {
         backgroundColor = .white
-       
+        
         newFork(frequency: 440)
         newFork(frequency: 880)
         newFork(frequency: 392)
@@ -119,40 +135,40 @@ public class TuneScene: SKScene {
     }
     
     @objc func strikePressed() {
+        
+        
         if forks.count > 0 {
             // generate path moving towards wall
             let toWallPath = UIBezierPath()
-            let startPos = forks[0].position
+//            let startPos = forks[0].position
             toWallPath.move(to: .zero)
             
             //view!.frame.size.width - forks[0].position.x
-            let endPosition = CGPoint(x: 100, y: 0)
-            toWallPath.addQuadCurve(to: endPosition, controlPoint: CGPoint(x: endPosition.x * 0.5, y: 100))
+            view!.frame.size
+//            let startX = cconvert(forks[0].position, from: self).x
+            let startX = self.convertPoint(toView: forks[0].position).x
+            let endPosition = CGPoint(x: view!.frame.size.width - startX, y: 0)
+            toWallPath.addQuadCurve(to: endPosition, controlPoint: CGPoint(x: endPosition.x * 0.5, y: 200))
             
-            let moveToWall = SKAction.follow(toWallPath.cgPath, asOffset: true, orientToPath: false, duration: 2)
+            let moveToWall = SKAction.follow(toWallPath.cgPath, asOffset: true, orientToPath: false, duration: 0.5)
             moveToWall.timingMode = .easeIn
             
-            let shape = CAShapeLayer()
-            shape.path = toWallPath.cgPath
-            shape.fillColor = SKColor.red.cgColor
-            view!.layer.addSublayer(shape)
-            shape.position = forks[0].position
-            
-//            let fromWallPath = UIBezierPath()
-//            fromWallPath.addQuadCurve(to: startPos, controlPoint: CGPoint(x: (endPosition.x + startPos.x) * 0.5, y: 40))
-            
-            
+            //create another action that reverses the motion
             let moveFromWall = moveToWall.reversed()
-            
-            //SKAction.follow(fromWallPath.cgPath, asOffset: true, orientToPath: false, duration: 2)
             moveFromWall.timingMode = .easeOut
+            moveFromWall.duration = 0.7
             
             let playSound = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
-//                (node as! TuningFork).play()
-                print("play sound")
+                (node as! TuningFork).play()
+//                print("play sound")
             })
-            let strikeAnimationGroup = SKAction.group([moveToWall, playSound, moveFromWall])
-            forks[0].run(strikeAnimationGroup)
+            
+            let rotate = SKAction.rotate(byAngle: CGFloat(Double.pi * -0.2), duration: 0.5)
+            let reverseRotate = rotate.reversed()
+            reverseRotate.duration = 0.7
+            let reverseSequence = SKAction.sequence([rotate, reverseRotate])
+            let strikeAnimationGroup = SKAction.sequence([moveToWall, playSound, moveFromWall])
+            forks[0].run(.group([reverseSequence, strikeAnimationGroup]))
         }
     }
 
@@ -220,7 +236,7 @@ public class TuneScene: SKScene {
 
         //add the fork to our list
         forks.append(f)
-        f.play()//remove later
+//        f.play()//remove later
     }
     
     func removeForks() {

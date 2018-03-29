@@ -232,12 +232,31 @@ public class SpaceScene: SKScene {
         
         addChild(planetNode)
         
-        let orbitPath = UIBezierPath(ovalIn: CGRect(x: -1 * radius, y: -1 * radius, width: 2 * radius, height: 2 * radius))
+        
+        planetNode.position = CGPoint(x: CGFloat(cos(angleOffset)) * radius, y: CGFloat(sin(angleOffset)) * radius)
+        
+        let orbitPath = UIBezierPath()//ovalIn: CGRect(x: -1 * radius, y: -1 * radius, width: 2 * radius, height: 2 * radius))
         orbitPath.move(to: planetNode.position)
+        
+        
+        
+        
+        
+        
+        
+        orbitPath.addArc(withCenter: .zero, radius: radius, startAngle: CGFloat(angleOffset), endAngle: CGFloat(2 * Double.pi - angleOffset), clockwise: true)
+        orbitPath.addArc(withCenter: .zero, radius: radius, startAngle: CGFloat(2 * Double.pi - angleOffset), endAngle: CGFloat(angleOffset), clockwise: true)
+
+        
+        
+        
+        
+        
+        
         
         let orbit = SKAction.follow(orbitPath.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
         let readjust = SKAction.move(to:CGPoint(x: radius, y: 0), duration: 0)
-        planetNode.run(.repeatForever(.group([readjust, orbit])))
+        planetNode.run(.repeatForever(.sequence([orbit])))
         
         planets.append(planetNode)
         return planetNode
