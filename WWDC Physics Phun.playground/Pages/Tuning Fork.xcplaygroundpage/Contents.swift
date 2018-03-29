@@ -90,23 +90,10 @@ class TuningFork: SKSpriteNode {
 }
 
 public class TuneScene: SKScene {
-//    class ControlView: UIView {
-//
-//
-//        override init(frame: CGRect) {
-//            super.init(frame: frame)
-//
-//        }
-//
-//        required init?(coder aDecoder: NSCoder) {
-//            super.init(coder: aDecoder)
-//        }
-//    }
-//
     var forks: [TuningFork] = []
     let forkTexture = SKTexture(imageNamed: "fork")
     let tineTexture = SKTexture(imageNamed: "tine")
-    let forkOffset: CGFloat = 60
+    let forkOffset: CGFloat = 80
     var strikeButton: SqueezeButton!
     
     // note frequencies
@@ -122,8 +109,8 @@ public class TuneScene: SKScene {
         backgroundColor = .white
         
         newFork(frequency: 440)
-        newFork(frequency: 880)
-        newFork(frequency: 392)
+        newFork(frequency: 440)
+        newFork(frequency: 440)
         
         let buttonRect = CGRect(x: 0, y: 0, width: 170, height: 50)
         strikeButton = SqueezeButton(frame: buttonRect)
@@ -135,32 +122,47 @@ public class TuneScene: SKScene {
     }
     
     @objc func strikePressed() {
+        // I love guard statements
+        guard let playing = forks.first?.playing, !playing else {
+            return
+        }
         
-        
-        if forks.count > 0 {
+        var allActions: [SKAction] = []
+        for f in forks {
             // generate path moving towards wall
             let toWallPath = UIBezierPath()
-//            let startPos = forks[0].position
             toWallPath.move(to: .zero)
             
-            //view!.frame.size.width - forks[0].position.x
-            view!.frame.size
-//            let startX = cconvert(forks[0].position, from: self).x
-            let startX = self.convertPoint(toView: forks[0].position).x
-            let endPosition = CGPoint(x: view!.frame.size.width - startX, y: 0)
-            toWallPath.addQuadCurve(to: endPosition, controlPoint: CGPoint(x: endPosition.x * 0.5, y: 200))
+            let startX = self.convertPoint(toView: f.position).x
+            let changeX = 200 + view!.frame.size.width - startX
+            let endPosition = CGPoint(x: changeX, y: 0)
+            toWallPath.addQuadCurve(to: endPosition, controlPoint: CGPoint(x: endPosition.x * 0.7, y: 200))
+            
             
             let moveToWall = SKAction.follow(toWallPath.cgPath, asOffset: true, orientToPath: false, duration: 0.5)
             moveToWall.timingMode = .easeIn
             
             //create another action that reverses the motion
+           //let flippedPath =  toWallPath.reversing()
+//            let fromWallPath = UIBezierPath()
+//            let returnPosition = CGPoint(x: -1 * changeX, y: 0)
+//            fromWallPath.addQuadCurve(to: returnPosition, controlPoint: CGPoint(x: -1 * endPosition.x * 0.5, y: 200))
             let moveFromWall = moveToWall.reversed()
+                
+                //SKAction.moveBy(x: -1 * changeX, y: 0, duration: 0.7)
+                
+                // SKAction.follow(fromWallPath.cgPath, asOffset: true, orientToPath: false, duration: 0.7)
             moveFromWall.timingMode = .easeOut
             moveFromWall.duration = 0.7
+            //moveToWall.reversed()
+                
+                //SKAction.follow(flippedPath.cgPath, asOffset: true, orientToPath: false, duration: 0.7)
+            
+            
+//            moveFromWall.duration = 0.7
             
             let playSound = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
                 (node as! TuningFork).play()
-//                print("play sound")
             })
             
             let rotate = SKAction.rotate(byAngle: CGFloat(Double.pi * -0.2), duration: 0.5)
@@ -168,7 +170,14 @@ public class TuneScene: SKScene {
             reverseRotate.duration = 0.7
             let reverseSequence = SKAction.sequence([rotate, reverseRotate])
             let strikeAnimationGroup = SKAction.sequence([moveToWall, playSound, moveFromWall])
-            forks[0].run(.group([reverseSequence, strikeAnimationGroup]))
+//            let readjust = SKAction.move(to: startPos, duration: 0.1)
+            allActions.append(.group([reverseSequence, strikeAnimationGroup]))
+        }
+        
+        for (index, strikeAction) in allActions.enumerated() {
+            let indexedDelay = SKAction.wait(forDuration: TimeInterval(index))
+            let waitThenStrike = SKAction.sequence([indexedDelay, strikeAction])
+            forks[index].run(waitThenStrike)
         }
     }
 
