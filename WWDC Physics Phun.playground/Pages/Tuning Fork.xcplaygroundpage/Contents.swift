@@ -9,47 +9,75 @@ import SpriteKit
 import AVFoundation
 import Accelerate
 
-
-class TunePlayer {
-    func play() {
-        
-        // Specify the audio format we're going to use
-        let sampleRateHz = 44100
-        let numChannels = 1
-        let pcmFormat = AVAudioFormat(standardFormatWithSampleRate: Double(sampleRateHz), channels: UInt32(numChannels))
-        
-        let noteFrequencyHz = 440
-        let noteDuration: TimeInterval = 10000
-        
-        // Create a buffer for the audio data
-        let numSamples = UInt32(noteDuration * Double(sampleRateHz))
-        let buffer = AVAudioPCMBuffer(pcmFormat: pcmFormat!, frameCapacity: numSamples)
-        buffer?.frameLength = numSamples  // the buffer will be completely full
-        
-        for channelBuffer in UnsafeBufferPointer(start: buffer?.floatChannelData, count: numChannels) {
-            // Generate a sine wave with the specified frequency and duration
-            var length = Int32(numSamples)
-            var dc: Float = 0
-            var multiplier: Float = 2*Float(Double.pi)*Float(noteFrequencyHz)/Float(sampleRateHz)
-            vDSP_vramp(&dc, &multiplier, channelBuffer, (buffer?.stride)!, UInt(numSamples))
-            vvsinf(channelBuffer, channelBuffer, &length)
+class PitchPlayer {
+    let engine = AVAudioEngine()
+//    let player = AVAudioPlayerNode()
+    var players: [AVAudioPlayerNode] = []
+//    let pitchEffect = AVAudioUnitTimePitch()
+    var buffer: AVAudioPCMBuffer!
+    
+    init() {
+        let fileURL = Bundle.main.url(forResource:"tuning_a", withExtension: "m4a")!
+        let audioFile = try! AVAudioFile(forReading: fileURL)
+        buffer = AVAudioPCMBuffer(pcmFormat: audioFile.processingFormat, frameCapacity: UInt32(audioFile.length))
+        try! audioFile.read(into:buffer!)
+    }
+    
+    func addFrequency(f: Float) {
+        // if adding a new tuning fork to a set of 3, remove first tone and fork
+        if players.count == 3 {
+            players[0].pause()
+            players.remove(at: 0)
         }
         
-        // play audio buffer
-//        let engine = AVAudioEngine()
-//        let player = AVAudioPlayerNode()
-//        engine.attach(player)
-//        engine.connect(player, to: engine.mainMixerNode, format: pcmFormat)
-//        try! engine.start()
-//        player.scheduleBuffer(buffer!, completionHandler: { exit(1) })
-//        player.play()
+        let newPlayer = AVAudioPlayerNode()
+        let newPitchEffect = AVAudioUnitTimePitch()
         
-        //play in background
-//        RunLoop.main.run()
+        // cents = 1200 * log(f1 / f0) where f0 is the f of audio file
+        let cents = 1200 * log(f / 440)
+        newPitchEffect.pitch = cents
+        
+        engine.attach(newPlayer)
+        engine.attach(newPitchEffect)
+        
+        engine.connect(newPlayer, to: newPitchEffect, format: buffer?.format)
+        engine.connect(newPitchEffect, to: engine.mainMixerNode, format: buffer?.format)
+        newPlayer.volume = 1
+        
+        players.append(newPlayer)
+        
+        newPlayer.scheduleBuffer(buffer, at: nil, options: .loops)
+        self.engine.prepare()
+        try! self.engine.start()
+    }
+    
+    // fade volume out when ready to
+    func fadeVolumeAndPause(index: Int) {
+        if players[index].volume > 0.05 {
+            players[index].volume = players[index].volume - 0.05
+            
+            // use the dispatch queue to reduce volume every 0.1 nanosec/sec
+            let dispatchTime: DispatchTime = DispatchTime(uptimeNanoseconds: UInt64(1 * Double(NSEC_PER_SEC)))
+            DispatchQueue.main.asyncAfter(deadline: dispatchTime, execute: {
+                self.fadeVolumeAndPause(index: index)
+            })
+        } else {
+            players[index].pause()
+        }
+    }
+    
+    // raise volume back up and play! 🎹
+    func play(index: Int) {
+        players[index].volume = 1.0
+        let startTime = AVAudioTime(hostTime: 0)
+        players[index].play(at: startTime)
     }
 }
 
+let tuneDuration: TimeInterval = 5
+
 class TuningFork: SKSpriteNode {
+    
     var frequency: CGFloat!
     var timeSincePlayed: Float!
     var playing = false
@@ -59,7 +87,7 @@ class TuningFork: SKSpriteNode {
     var freqLabel: SKLabelNode!
     let emitter = SKEmitterNode(fileNamed: "WaveEmitter")
     
-    func play() {
+    func showWaves() {
         //change this to be based on actual sound output
         if !playing {
             emitter?.position = CGPoint(x: 0, y: -120 + tineHeight + frame.size.height / 2)
@@ -67,13 +95,13 @@ class TuningFork: SKSpriteNode {
             if emitter?.parent == nil {
                 addChild(emitter!)
             }
-            
+
             let fadeIn = SKAction.fadeIn(withDuration: 0.5)
-            //we keep our tune playing for 8 seconds
-            let delay = SKAction.wait(forDuration: 3)
-            //WARNING!!! ^^ make this delay longer once done testing
+            //we keep our tune playing for ~8 seconds
+            let delay = SKAction.wait(forDuration: tuneDuration)
             let fadeOut = SKAction.fadeOut(withDuration: 0.8)
             
+            //action on completion of tune
             let resetState = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
                 //reset state, which includes playing bool
                 self.playing = false
@@ -83,11 +111,10 @@ class TuningFork: SKSpriteNode {
             
             let soundSequence = SKAction.sequence([fadeIn, delay, fadeOut, resetState])
             emitter?.run(soundSequence)
-//            let x = TunePlayer()
-//            x.play()
             playing = true
         }
     }
+    
 }
 
 public class TuneScene: SKScene {
@@ -96,6 +123,7 @@ public class TuneScene: SKScene {
     let tineTexture = SKTexture(imageNamed: "tine")
     let forkOffset: CGFloat = 80
     var strikeButton: SqueezeButton!
+    let pitchPlayer = PitchPlayer()
     
     // note frequencies
     let As: [CGFloat] = [27.5, 55, 110, 220, 440, 880, 1760, 3520, 7040]
@@ -109,13 +137,14 @@ public class TuneScene: SKScene {
     public override func didMove(to view: SKView) {
         backgroundColor = .white
         
-        newFork(frequency: 440)
-        newFork(frequency: 440)
-        newFork(frequency: 440)
+        newFork(frequency: 1046.50)
+        newFork(frequency: 1318.51)
+        newFork(frequency: 1567.98)
         
-        let buttonRect = CGRect(x: 0, y: 0, width: 170, height: 50)
+        let buttonRect = CGRect(x: 0, y: 0, width: 120, height: 40)
         strikeButton = SqueezeButton(frame: buttonRect)
-        strikeButton.center = CGPoint(x: 100, y: 60)
+        let viewSize = view.frame.size
+        strikeButton.center = CGPoint(x: viewSize.width * 0.5, y: viewSize.height - buttonRect.height * 0.5 - 8)
         view.addSubview(strikeButton)
         strikeButton.backgroundColor = .gray
         strikeButton.setTitle("Strike!", for: .normal)
@@ -144,20 +173,19 @@ public class TuneScene: SKScene {
             let moveToWall = SKAction.follow(toWallPath.cgPath, asOffset: true, orientToPath: false, duration: 0.5)
             moveToWall.timingMode = .easeIn
             
-            moveToWall.timingMode = .easeIn
-            
-            
             let moveFromWall = SKAction.move(to: startPoint, duration: 1)
-            
-            //= moveToWall.reversed()
             
             moveFromWall.timingMode = .easeOut
             moveFromWall.duration = 0.8
             
-//            moveFromWall.duration = 0.7
-            
             let playSound = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
-//                (node as! TuningFork).play()
+                (node as! TuningFork).showWaves()
+                self.pitchPlayer.play(index: index)
+                let wait = SKAction.wait(forDuration: tuneDuration)
+                let pausePlayer = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
+                    self.pitchPlayer.fadeVolumeAndPause(index: index)
+                })
+                self.run(.sequence([wait, pausePlayer]))
             })
             
             let rotate = SKAction.rotate(byAngle: CGFloat(Double.pi * -0.2), duration: 0.5)
@@ -165,7 +193,6 @@ public class TuneScene: SKScene {
             reverseRotate.duration = 0.7
             let reverseSequence = SKAction.sequence([rotate, reverseRotate])
             let strikeAnimationGroup = SKAction.sequence([moveToWall, playSound, moveFromWall])
-//            let readjust = SKAction.move
             allActions.append(.group([reverseSequence, strikeAnimationGroup]))
         }
         
@@ -177,7 +204,7 @@ public class TuneScene: SKScene {
     }
 
     func newFork(frequency: CGFloat) {
-        //max of 3 tuning forks allowed
+        //max of 3 tuning forks
         if forks.count == 3 {
             let removeAction = SKAction.customAction(withDuration: 0.5, actionBlock: { (node, num) in
                 node.removeFromParent()
@@ -191,6 +218,9 @@ public class TuneScene: SKScene {
             forks[0].run(moveAction)
             forks[1].run(moveAction)
         }
+        
+        //add the frequency to our audio player
+        pitchPlayer.addFrequency(f: Float(frequency))
         
         let f = TuningFork(texture: forkTexture)
         
@@ -234,13 +264,12 @@ public class TuneScene: SKScene {
         extraTine.size = CGSize(width: 55, height: tineHeight)
         
         //adjust added tine and tuning fork anchors
-        extraTine.anchorPoint = CGPoint(x: 0.5, y: 0.1)
+        extraTine.anchorPoint = CGPoint(x: 0.5, y: 0)
         f.anchorPoint = CGPoint(x: 0.5, y: 1)
         f.addChild(extraTine)
 
         //add the fork to our list
         forks.append(f)
-//        f.play()//remove later
     }
     
     func removeForks() {
@@ -253,13 +282,7 @@ public class TuneScene: SKScene {
     }
 }
 
-
-
-
-
-
-
-/// Welcome to THe Tuning fork simulator!
+/// Welcome to The Tuning fork simulator!
 
 //: We can combine tuning forks to play different musical chords! Clear the previous forks and create 2 more that have frequencies of ___ and ____, then press the strike button!
 
