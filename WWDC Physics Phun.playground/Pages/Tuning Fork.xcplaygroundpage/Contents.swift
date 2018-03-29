@@ -77,6 +77,7 @@ class TuningFork: SKSpriteNode {
             let resetState = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
                 //reset state, which includes playing bool
                 self.playing = false
+                //no need to remove from parent for now
 //                self.emitter?.removeFromParent()
             })
             
@@ -128,41 +129,35 @@ public class TuneScene: SKScene {
         }
         
         var allActions: [SKAction] = []
-        for f in forks {
+        for (index, f) in forks.enumerated() {
             // generate path moving towards wall
             let toWallPath = UIBezierPath()
             toWallPath.move(to: .zero)
             
-            let startX = self.convertPoint(toView: f.position).x
-            let changeX = 200 + view!.frame.size.width - startX
+            let startPoint = f.position
+            let startX = (f.frame.size.width + forkOffset) * CGFloat(index)
+            // need a special offset to account for angle
+            let changeX = -70 + frame.size.width - startX
             let endPosition = CGPoint(x: changeX, y: 0)
-            toWallPath.addQuadCurve(to: endPosition, controlPoint: CGPoint(x: endPosition.x * 0.7, y: 200))
-            
+            toWallPath.addQuadCurve(to: endPosition, controlPoint: CGPoint(x: changeX * 0.5, y: 200))
             
             let moveToWall = SKAction.follow(toWallPath.cgPath, asOffset: true, orientToPath: false, duration: 0.5)
             moveToWall.timingMode = .easeIn
             
-            //create another action that reverses the motion
-           //let flippedPath =  toWallPath.reversing()
-//            let fromWallPath = UIBezierPath()
-//            let returnPosition = CGPoint(x: -1 * changeX, y: 0)
-//            fromWallPath.addQuadCurve(to: returnPosition, controlPoint: CGPoint(x: -1 * endPosition.x * 0.5, y: 200))
-            let moveFromWall = moveToWall.reversed()
-                
-                //SKAction.moveBy(x: -1 * changeX, y: 0, duration: 0.7)
-                
-                // SKAction.follow(fromWallPath.cgPath, asOffset: true, orientToPath: false, duration: 0.7)
-            moveFromWall.timingMode = .easeOut
-            moveFromWall.duration = 0.7
-            //moveToWall.reversed()
-                
-                //SKAction.follow(flippedPath.cgPath, asOffset: true, orientToPath: false, duration: 0.7)
+            moveToWall.timingMode = .easeIn
             
+            
+            let moveFromWall = SKAction.move(to: startPoint, duration: 1)
+            
+            //= moveToWall.reversed()
+            
+            moveFromWall.timingMode = .easeOut
+            moveFromWall.duration = 0.8
             
 //            moveFromWall.duration = 0.7
             
             let playSound = SKAction.customAction(withDuration: 0, actionBlock: { (node, i) in
-                (node as! TuningFork).play()
+//                (node as! TuningFork).play()
             })
             
             let rotate = SKAction.rotate(byAngle: CGFloat(Double.pi * -0.2), duration: 0.5)
@@ -170,7 +165,7 @@ public class TuneScene: SKScene {
             reverseRotate.duration = 0.7
             let reverseSequence = SKAction.sequence([rotate, reverseRotate])
             let strikeAnimationGroup = SKAction.sequence([moveToWall, playSound, moveFromWall])
-//            let readjust = SKAction.move(to: startPos, duration: 0.1)
+//            let readjust = SKAction.move
             allActions.append(.group([reverseSequence, strikeAnimationGroup]))
         }
         
@@ -273,6 +268,7 @@ public class TuneScene: SKScene {
 let sceneView = SKView(frame: CGRect(x:0 , y:0, width: 640, height: 480))
 if let scene = TuneScene(fileNamed: "TuneScene") {
     scene.scaleMode = .aspectFill
+//    scene.size = sceneView.frame.size
     sceneView.presentScene(scene)
 }
 
