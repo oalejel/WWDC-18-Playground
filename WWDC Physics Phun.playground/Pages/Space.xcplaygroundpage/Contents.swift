@@ -255,7 +255,7 @@ public class SpaceScene: SKScene {
         
         
         let orbit = SKAction.follow(orbitPath.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
-        let readjust = SKAction.move(to:CGPoint(x: radius, y: 0), duration: 0)
+//        let readjust = SKAction.move(to:CGPoint(x: radius, y: 0), duration: 0)
         planetNode.run(.repeatForever(.sequence([orbit])))
         
         planets.append(planetNode)

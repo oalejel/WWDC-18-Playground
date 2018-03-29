@@ -137,9 +137,9 @@ public class TuneScene: SKScene {
     public override func didMove(to view: SKView) {
         backgroundColor = .white
         
-        newFork(frequency: 1046.50)
-        newFork(frequency: 1318.51)
-        newFork(frequency: 1567.98)
+        newFork(frequency: 1760)
+        newFork(frequency: 880)
+        newFork(frequency: 440)
         
         let buttonRect = CGRect(x: 0, y: 0, width: 120, height: 40)
         strikeButton = SqueezeButton(frame: buttonRect)
@@ -256,10 +256,10 @@ public class TuneScene: SKScene {
         let forkX = CGFloat(forks.count + 1) *  (f.frame.size.width + forkOffset) - frame.size.width * 0.5
         f.position = CGPoint(x: forkX, y: 0)
         
-        let extraTine = SKSpriteNode(texture: tineTexture)
         //longer tines means lower frequency!
+        let extraTine = SKSpriteNode(texture: tineTexture)
         let maxTineHeight: CGFloat = 55
-        let tineHeight = maxTineHeight * (frequency / 440)
+        let tineHeight = maxTineHeight * (440 / frequency)
         f.tineHeight = tineHeight
         extraTine.size = CGSize(width: 55, height: tineHeight)
         

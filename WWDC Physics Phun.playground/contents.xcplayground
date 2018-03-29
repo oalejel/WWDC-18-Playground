@@ -3,5 +3,6 @@
     <pages>
         <page name='Space'/>
         <page name='Tuning Fork'/>
+        <page name='Gas Law'/>
     </pages>
 </playground>
