@@ -23,21 +23,16 @@ class Particle: SCNNode {
         physicsBody?.velocity = storedVelocity
         motionPaused = false
     }
-    
-    
 }
 
 class GasLawScene: SCNScene, SCNPhysicsContactDelegate {
     
     let sphereBitMask: Int = 0x000F
     let boxBitMask: Int = 0x00F0
-    
     var spheres: [Particle] = []
     
     var boxNode: SCNNode!
     var faceNodes: [SCNNode] = []
-    //    var wireNode: SCNNode!
-    
     var reflectionAllowed = true
     
     override init() {
@@ -56,12 +51,6 @@ class GasLawScene: SCNScene, SCNPhysicsContactDelegate {
         physicsWorld.gravity = SCNVector3Make(0, 0, 0)
         
         let edgeVector = SCNVector3Make(10, 0.5, 0.5)
-        
-        let camNode = SCNNode()
-        camNode.camera = SCNCamera()
-        
-        camNode.position = SCNVector3Make(0,0,15)
-        rootNode.addChildNode(camNode)
         
         func edge(_ vector: SCNVector3) -> SCNNode {
             let edgeGeo = SCNBox(width: CGFloat(vector.x), height: CGFloat(vector.y), length: CGFloat(vector.z), chamferRadius: 0.2)
@@ -161,18 +150,23 @@ class GasLawScene: SCNScene, SCNPhysicsContactDelegate {
         faceNodes.append(contentsOf: [face1Node, face2Node, face3Node, face4Node, face5Node, face6Node])
         
         let inset = Float(edgeVector.x / -2)
-        boxNode.pivot = SCNMatrix4MakeTranslation(inset, 0, inset)
-        
+        boxNode.pivot = SCNMatrix4MakeTranslation(inset, 0, 0)
         rootNode.addChildNode(boxNode)
+        
         ///work on the camear when you want to perfect this....
-        //        let camera = SCNCamera()
-        //        camera.zNear = 12
-        //        rootNode.camera = camera
+//                let camera = SCNCamera()
+//                camera.zNear = 12
+//
+//                rootNode.camera = camera
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
     }
     
     func generateParticles(_ count: Int, redRatio: CGFloat) {
         for _ in 0..<count {
-            let sphereGeo = SCNSphere(radius: 0.25)
+            let sphereGeo = SCNSphere(radius: 0.2)
             sphereGeo.firstMaterial?.diffuse.contents = UIColor(red: redRatio, green: 0.18, blue: 0.54, alpha: 1)
             let sphereNode = Particle()
             sphereNode.geometry = sphereGeo
@@ -182,16 +176,9 @@ class GasLawScene: SCNScene, SCNPhysicsContactDelegate {
             sphereNode.physicsBody?.collisionBitMask = boxBitMask
             sphereNode.physicsBody?.categoryBitMask = sphereBitMask
             sphereNode.physicsBody?.contactTestBitMask = boxBitMask
-            sphereNode.physicsBody?.velocity = randomVector(20)
+            sphereNode.physicsBody?.velocity = randomVector(5)
             
-            
-            ///REMOVE THIS
-            //in case we are ....?
-            if let random = spheres.last {
-                if random.motionPaused {
-                    sphereNode.pauseMotion()
-                }
-            }
+        
             
             spheres.append(sphereNode)
             
@@ -268,16 +255,20 @@ class GasLawScene: SCNScene, SCNPhysicsContactDelegate {
         return SCNVector3Make(x, y, z)
     }
     
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-    }
 }
 
 let sceneView = SCNView(frame: CGRect(x:0 , y:0, width: 640, height: 480))
-if let scene = GasLawScene(named: "GasLawScene") {
-    //    scene.size = sceneView.frame.size
-    sceneView.scene = scene
-}
+
+sceneView.backgroundColor = UIColor(red: 1, green: 230/255, blue: 179/255, alpha: 1)
+sceneView.allowsCameraControl = true
+sceneView.autoenablesDefaultLighting = true
+
+let experimentScene = GasLawScene()//GasLawScene(named: "GasLawScene")
+sceneView.scene = experimentScene
+
+experimentScene.boxNode.scale = SCNVector3Make(0.5, 0.5, 0.5)
+experimentScene.updateSphereTemperature(1)
+experimentScene.generateParticles(5, redRatio: 1)
 
 PlaygroundSupport.PlaygroundPage.current.liveView = sceneView
 

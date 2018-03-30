@@ -1,6 +1,10 @@
 
-//: Physics Phun 🚀⚡️🛰
-//: Physics Phun is a physics simulator for exploring fascinating phenomena made with SpriteKit, AVFoundation, and
+//: # Physics Phun 🚀⚡️🛰
+//:
+//: Physics Phun is a physics simulator for exploring fascinating phenomena made with SpriteKit, AVFoundation, and UIKit. This simulator features just a few simulations that reflect a creative extension of the Physics Phun app I published in my sophomore year of high school! Feel free to explore 👩‍🚀 👨‍🚀
+
+//: ## Space Simulator
+//: Explore
 
 import PlaygroundSupport
 import SpriteKit

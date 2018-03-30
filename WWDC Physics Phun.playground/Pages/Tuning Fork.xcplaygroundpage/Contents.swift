@@ -1,7 +1,6 @@
 //: [Previous](@previous)
 
-
-//: Tuning Fork
+//: ## Tuning Fork 🎻 🔊
 //: Sound is just a series of vibrations in the air! Tuning forks take advantage of their long, narrow ends, called tines, to make air compressions with a constant frequency, which is why they are useful for `tuning` musical instruments.
 
 import PlaygroundSupport
@@ -11,9 +10,7 @@ import Accelerate
 
 class PitchPlayer {
     let engine = AVAudioEngine()
-//    let player = AVAudioPlayerNode()
     var players: [AVAudioPlayerNode] = []
-//    let pitchEffect = AVAudioUnitTimePitch()
     var buffer: AVAudioPCMBuffer!
     
     init() {
@@ -33,7 +30,7 @@ class PitchPlayer {
         let newPlayer = AVAudioPlayerNode()
         let newPitchEffect = AVAudioUnitTimePitch()
         
-        // cents = 1200 * log(f1 / f0) where f0 is the f of audio file
+        // cents = 1200 * log(f1 / f0) where f0 is the Hz of audio file
         let cents = 1200 * log(f / 440)
         newPitchEffect.pitch = cents
         
