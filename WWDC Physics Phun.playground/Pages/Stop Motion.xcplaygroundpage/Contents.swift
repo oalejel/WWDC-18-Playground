@@ -103,10 +103,18 @@ public class FlipPageView: UIView {
         drawnImg = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
     }
+    
+    //this is to be called right before we prepare for a next/prev page
+    func saveImage() {
+        UIGraphicsBeginImageContextWithOptions(frame.size, true, 0)
+        drawnImg = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+    }
 }
 
 public class BookController: UIViewController {
     var images: [UIImage] = []
+    var pageIndex = 0
     var soundPlayer: AVAudioPlayer!
     var coverView: UIImageView!
     var backView: UIImageView!
@@ -115,8 +123,7 @@ public class BookController: UIViewController {
     var bookTitle = "MY STORY I"
     var pageXOffset: CGFloat!
     var coverImgView: UIImageView!
-    
-
+    var extraPages: [UIView] = []
     
     public init(frame: CGRect) {
         super.init(nibName: nil, bundle: nil)
@@ -128,9 +135,7 @@ public class BookController: UIViewController {
         pageView = FlipPageView(frame: CGRect(x: pageXOffset, y: frame.size.height * yOffsetFactor, width: frame.size.width - (frame.size.width * xOffsetFactor * 2), height: frame.size.height - (frame.size.height * yOffsetFactor * 2)))
     }
     
-    public required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-    }
+    public required init?(coder aDecoder: NSCoder) { super.init(coder: aDecoder) }
     
     public override func viewDidLoad() {
         
@@ -169,29 +174,60 @@ public class BookController: UIViewController {
         rotationAnimation = CABasicAnimation.init(keyPath: "transform.rotation.y")
         rotationAnimation.toValue = NSNumber(value: (opening ? -1 : 1) * Double.pi)
         rotationAnimation.duration = 1.5
-        // setting these unnecessarily because of a library bug
+        // these must be set to avoid a certain error with removal on completion
         rotationAnimation.isRemovedOnCompletion = false
         rotationAnimation.autoreverses = false
         rotationAnimation.repeatCount = 0
         rotationAnimation.fillMode = kCAFillModeForwards
-//        rotationAnimation.isCumulative = true
         coverImgView.layer.add(rotationAnimation, forKey: "rotationAnimation")
     }
     
-    func next() {
-        if let img = pageView.drawnImg {
-            images.append(img)
+    // take current page and put it on left side
+    func animateFlipLeft() {
+        let dummyView = UIImageView(image: images[pageIndex])
+        dummyView.frame = inputView!.frame
+        view.addSubview(dummyView)
+        dummyView.backgroundColor = .red
+    }
+    
+    // take old page and cover current one
+    func animateFlipRight() {
+        
+    }
+    
+    func prev() {
+        //save image in case it was cleared before
+        pageView.saveImage()
+        
+        if (pageIndex > 0) {
+            animateFlipRight()
         }
+        pageIndex -= 1
+    }
+    
+    func next() {
+        //save image in case it was cleared before
+        //if nothing was drawn, accept the frame and
+        pageView.saveImage()
+        if let img = pageView.drawnImg {
+            
+            images.append(img)
+            pageIndex += 1
+        }
+        
+    
     }
     
     func clear() {
         pageView.drawnImg = nil
         pageView.drawImage()
+        pageView.setNeedsDisplay()
     }
     
     func animate() {
         
     }
+    
     func copyPage() {
         
     }
@@ -206,10 +242,12 @@ public class StopMotionController: UIViewController {
     
     //buttons for editing
     
+    var prevPageButton: SqueezeButton!
     var nextPageButton: SqueezeButton!
     var clearButton: SqueezeButton!
     var animateButton: SqueezeButton!
     var copyButton: SqueezeButton!
+
     
     func newButton(imageName: String) -> SqueezeButton {
         let buttonRadius: CGFloat = 25
@@ -227,8 +265,8 @@ public class StopMotionController: UIViewController {
     public override func viewDidLoad() {
 //        book = FlipPageView(frame: CGRect(x: 0, y: 0, width: bookSize.width, height: bookSize.height))
         
-        
         copyButton = newButton(imageName: "copy.png")
+        prevPageButton = newButton(imageName: "previous.png")
         nextPageButton = newButton(imageName: "next.png")
         animateButton = newButton(imageName: "animate.png")
         clearButton = newButton(imageName: "clear.png")
@@ -253,21 +291,31 @@ public class StopMotionController: UIViewController {
         let x1 = book.view.frame.origin.x + 40
         let y1 = book.view.frame.origin.y + book.view.frame.size.height + 40
         
-        nextPageButton.center = CGPoint(x: x1, y: y1)
+        prevPageButton.center = CGPoint(x: x1, y: y1)
+        nextPageButton.center = CGPoint(x: x1 + animateButton.frame.size.width + 8, y: y1)
         copyButton.center = CGPoint(x: x1, y: y1 + 8 + copyButton.frame.size.height)
-
-        animateButton.center = CGPoint(x: x1 + animateButton.frame.size.width + 8, y: y1)
         clearButton.center = CGPoint(x: x1 + clearButton.frame.size.width + 8, y: y1 + 8 + clearButton.frame.size.height)
+        animateButton.center = CGPoint(x: x1 + (animateButton.frame.size.width + 8) * 2, y: y1)
+
         
+        prevPageButton.addTarget(self, action: #selector(prevPressed), for: .touchUpInside)
         nextPageButton.addTarget(self, action: #selector(nextPressed), for: .touchUpInside)
         copyButton.addTarget(self, action: #selector(copyPressed), for: .touchUpInside)
         animateButton.addTarget(self, action: #selector(animatePressed), for: .touchUpInside)
         clearButton.addTarget(self, action: #selector(clearPressed), for: .touchUpInside)
+    
         
+        view.addSubview(prevPageButton)
         view.addSubview(nextPageButton)
         view.addSubview(copyButton)
         view.addSubview(animateButton)
         view.addSubview(clearButton)
+    }
+    
+    @objc func prevPressed() {
+        //if we are at page index 0, then do nothing
+        //no need to show watermark in this case.. just make sure you handle the watermark view
+        
     }
     
     @objc func nextPressed() {
@@ -284,7 +332,7 @@ public class StopMotionController: UIViewController {
     }
     @objc func animatePressed() {
         //animate the closing of the book followed by opening and animating through images
-        //consider using UIPageView to do this...
+        // ensure that watermark no longer visible
         book.animate()
     }
     @objc func clearPressed() {
