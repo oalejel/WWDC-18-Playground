@@ -31,14 +31,14 @@ class PitchPlayer {
         let newPitchEffect = AVAudioUnitTimePitch()
         
         // cents = 1200 * log(f1 / f0) where f0 is the Hz of audio file
-        let cents = 1200 * log(f / 440)
-        newPitchEffect.pitch = cents
+//        let cents = 1200 * log(f / 440)
+        newPitchEffect.pitch = 1200 * log(f / 440) / log(2) //newPitchEffect.pitch.advanced(by: 60)
         
         engine.attach(newPlayer)
         engine.attach(newPitchEffect)
         
-        engine.connect(newPlayer, to: newPitchEffect, format: buffer?.format)
-        engine.connect(newPitchEffect, to: engine.mainMixerNode, format: buffer?.format)
+        engine.connect(newPlayer, to: newPitchEffect, format: engine.mainMixerNode.outputFormat(forBus: 0))
+        engine.connect(newPitchEffect, to: engine.mainMixerNode, format: engine.mainMixerNode.outputFormat(forBus: 0))
         newPlayer.volume = 1
         
         players.append(newPlayer)
@@ -134,9 +134,9 @@ public class TuneScene: SKScene {
     public override func didMove(to view: SKView) {
         backgroundColor = .white
         
-        newFork(frequency: 1760)
-        newFork(frequency: 880)
-        newFork(frequency: 440)
+        newFork(frequency: 261.63)
+        newFork(frequency: 329.63)
+        newFork(frequency: 392.00)
         
         let buttonRect = CGRect(x: 0, y: 0, width: 120, height: 40)
         strikeButton = SqueezeButton(frame: buttonRect)

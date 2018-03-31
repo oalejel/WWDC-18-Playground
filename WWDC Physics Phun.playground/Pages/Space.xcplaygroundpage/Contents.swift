@@ -59,9 +59,9 @@ public class SpaceScene: SKScene {
             speedSlider = UISlider(frame: CGRect(x: 0, y: 0, width: sliderW, height: 30))
             speedSlider.minimumValue = Float(1 / 365)
             speedSlider.isContinuous = true
-            speedSlider.maximumValue = 2
+            speedSlider.maximumValue = 1
             speedSlider.center = CGPoint(x: sliderW * 0.5 + 8, y: frame.size.height / 4)
-            speedSlider.value = 1
+            speedSlider.value = (30 / 365)
             
             speedSlider.addTarget(self, action: #selector(speedChanged(sender:)), for: .valueChanged)
             
@@ -160,7 +160,9 @@ public class SpaceScene: SKScene {
     }
     
     @objc func adjustSpeed(sender: UISlider) {
-        let changeSpeed = SKAction.speed(to: CGFloat(sender.value), duration: 1)
+        //at speed = 1, we travel at 30 days per second
+        //given a value between 1/365 and 1, at valye = 30 / 365, we shoud have a speed * 365 / 30
+        let changeSpeed = SKAction.speed(to: CGFloat(sender.value * (365 / 30)), duration: 1)
         run(changeSpeed)//.repeatForever(changeSpeed))
     }
     
@@ -258,7 +260,7 @@ public class SpaceScene: SKScene {
         
         
         
-        let orbit = SKAction.follow(orbitPath.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval(15 * orbitYears))
+        let orbit = SKAction.follow(orbitPath.cgPath, asOffset: false, orientToPath: true, duration: TimeInterval((365 / 30) * orbitYears))
 //        let readjust = SKAction.move(to:CGPoint(x: radius, y: 0), duration: 0)
         planetNode.run(.repeatForever(.sequence([orbit])))
         
