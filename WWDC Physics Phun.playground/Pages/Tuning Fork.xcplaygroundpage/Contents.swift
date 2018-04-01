@@ -6,7 +6,6 @@
 import PlaygroundSupport
 import SpriteKit
 import AVFoundation
-import Accelerate
 
 class PitchPlayer {
     let engine = AVAudioEngine()
@@ -137,6 +136,14 @@ public class TuneScene: SKScene {
         newFork(frequency: 261.63)
         newFork(frequency: 329.63)
         newFork(frequency: 392.00)
+        
+        //show them how to play c major on the next octave
+        
+        //option for picking from a list of chords that make up a chord --> would need to add sharps
+        
+        //consider showing longitudinal waves and transverse waves when only one tuning fork has been added
+        //create a clear funciton
+        
         
         let buttonRect = CGRect(x: 0, y: 0, width: 120, height: 40)
         strikeButton = SqueezeButton(frame: buttonRect)

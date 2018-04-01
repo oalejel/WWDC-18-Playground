@@ -49,7 +49,7 @@ public class SqueezeButton: UIButton {
     
     //if press has not completed, rescaling will not take place
     func press() {
-        if completedSqueeze {
+        if completedSqueeze && !pendingOut {
             UIView.animateKeyframes(withDuration: 0.1, delay: 0.0, options: UIViewKeyframeAnimationOptions.calculationModeCubic, animations: { () -> Void in
                 self.completedSqueeze = false
                 self.transform = self.transform.scaledBy(x: 0.9, y: 0.9)

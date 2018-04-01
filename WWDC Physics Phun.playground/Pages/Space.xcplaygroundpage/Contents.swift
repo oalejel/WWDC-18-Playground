@@ -21,6 +21,17 @@ import SpriteKit
  
  */
 
+public class PlanetNode: SKShapeNode {
+    
+    public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        //tell parent 
+    }
+    
+    public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+    }
+}
+
 public class SpaceScene: SKScene {
     
     class ControlView: UIView {
@@ -120,6 +131,7 @@ public class SpaceScene: SKScene {
     var planets: [SKShapeNode] = []
     let arrowTexture = SKTexture(imageNamed: "arrow")
     
+    
     public override func didMove(to view: SKView) {
         
         backgroundColor = .black
@@ -149,6 +161,7 @@ public class SpaceScene: SKScene {
         uranusNode = addPlanet(radius: 230, orbitYears: 84, angleOffset: Double.pi * 0.2, color: .cyan)
         neptuneNode = addPlanet(radius: 270, orbitYears: 165, angleOffset: Double.pi * 1.91, color: .blue)
         
+    
         
         // not a planet :(
         //WARNING: MAKE THIS PART Of THE PLAYGROUND EXPERIENCE!!
@@ -203,7 +216,7 @@ public class SpaceScene: SKScene {
     }
     
     // takes orbit radius, earth years for orbit, offset angle (polar coordiantes), and a color for a planet node to be added to the scene
-    func addPlanet(radius: CGFloat, orbitYears: CGFloat, angleOffset: Double, color: SKColor) -> SKShapeNode {
+    func addPlanet(radius: CGFloat, orbitYears: CGFloat, angleOffset: Double, color: SKColor, documentationKey: String? = nil) -> SKShapeNode {
         
         //arrow node for acceleration
         let accArrowNode = SKSpriteNode(texture: arrowTexture)
@@ -275,6 +288,16 @@ public class SpaceScene: SKScene {
         addChild(star)
         return star
     }
+    
+let includedDocumentation = [
+    "Earth" : """
+    Earth is the third planet from the Sun and the only object in the Universe known to harbor life. According to radiometric dating and other sources of evidence, Earth formed over 4.5 billion years ago. Earth's gravity interacts with other objects in space, especially the Sun and the Moon, Earth's only natural satellite. Earth revolves around the Sun in 365.26 days, a period known as an Earth year. During this time, Earth rotates about its axis about 366.26 times.
+    """,
+    "Venus" : """
+    Venus is the second planet from the Sun, orbiting it every 224.7 Earth days. It has the longest rotation period (243 days) of any planet in the Solar System and rotates in the opposite direction to most other planets (meaning the Sun would rise in the west and set in the east). It does not have any natural satellites. It is named after the Roman goddess of love and beauty. It is the second-brightest natural object in the night sky after the Moon, reaching an apparent magnitude of −4.6 – bright enough to cast shadows at night and, rarely, visible to the naked eye in broad daylight. Orbiting within Earth's orbit, Venus is an inferior planet and never appears to venture far from the Sun; its maximum angular distance from the Sun (elongation) is 47.8°.
+    """
+    ]
+    
 }
 
 
