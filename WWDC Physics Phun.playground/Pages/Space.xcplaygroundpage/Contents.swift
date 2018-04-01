@@ -211,9 +211,9 @@ public class SpaceScene: SKScene {
         }
     }
     
-    public override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
-    }
+//    public override func update(_ currentTime: TimeInterval) {
+//        // Called before each frame is rendered
+//    }
     
     // takes orbit radius, earth years for orbit, offset angle (polar coordiantes), and a color for a planet node to be added to the scene
     func addPlanet(radius: CGFloat, orbitYears: CGFloat, angleOffset: Double, color: SKColor, documentationKey: String? = nil) -> SKShapeNode {

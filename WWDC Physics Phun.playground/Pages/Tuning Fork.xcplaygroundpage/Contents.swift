@@ -281,9 +281,9 @@ public class TuneScene: SKScene {
         forks.removeAll()
     }
  
-    public override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
-    }
+//    public override func update(_ currentTime: TimeInterval) {
+//        // Called before each frame is rendered
+//    }
 }
 
 /// Welcome to The Tuning fork simulator!

@@ -13,6 +13,17 @@ import UIKit
 import AVFoundation
 import PlaygroundSupport
 
+//this class handles drawing a light version of a previous image
+// I take advantage of CGBlendMode to only draw the black portion of the image, since the white background of the image should not be overlayed over images beneath
+public class WatermarkView: UIView {
+    var image: UIImage? {
+        didSet { setNeedsDisplay() }
+    }
+    public override func draw(_ rect: CGRect) {
+        image?.draw(in: rect, blendMode: CGBlendMode.colorBurn, alpha: 0.2)
+    }
+}
+
 public class FlipPageView: UIView {
     var touchCount = 0
     var drawPath: UIBezierPath!
@@ -29,7 +40,7 @@ public class FlipPageView: UIView {
         
         //prepare our drawing path
         drawPath = UIBezierPath()
-        drawPath.lineWidth = 1
+        drawPath.lineWidth = 2
     }
     
     public required init?(coder aDecoder: NSCoder) {
@@ -143,7 +154,7 @@ public class BookController: UIViewController, CAAnimationDelegate {
     var coverView: UIImageView!
     var backView: UIImageView!
     var pageView: FlipPageView!
-    var watermarkView: UIView!
+    var watermarkView: WatermarkView!
     var pageXOffset: CGFloat!
     var pageYOffset: CGFloat!
     var coverImgView: UIImageView!
@@ -203,6 +214,13 @@ public class BookController: UIViewController, CAAnimationDelegate {
         shadowView.layer.shadowColor = UIColor.black.cgColor
         shadowView.layer.shadowOpacity = 0.7
         view.addSubview(shadowView)
+        
+        watermarkView = WatermarkView(frame: pageView.frame)
+        watermarkView.backgroundColor = .clear
+        watermarkView.isExclusiveTouch = false
+        watermarkView.isUserInteractionEnabled = false
+        
+        view.addSubview(watermarkView)
         
         //change anchorpoint for flip animation
         coverImgView.layer.anchorPoint = CGPoint(x: 0, y: 0.5)
@@ -283,12 +301,24 @@ public class BookController: UIViewController, CAAnimationDelegate {
         }
         if (pageIndex > 0) {
             pageIndex -= 1
+            
+            //if we havent reached page 0, then set watermark
+            if pageIndex > 0 {
+                watermarkView.image = images[pageIndex - 1]
+            }
             animateFlipToRight()
+        }
+        
+        // if we become or were already page 0, set to nothing
+        if pageIndex == 0 {
+            // set our watermark for reference
+            watermarkView.image = nil
         }
     }
     
     func next() {
         if animating {return}
+        
         //if we havent ever added this image yet, add it
         if pageIndex >= images.count {
             images.append(pageView.drawnImg!)
@@ -296,6 +326,9 @@ public class BookController: UIViewController, CAAnimationDelegate {
             //else, we already stored this page image before
             images[pageIndex] = pageView.drawnImg!
         }
+        
+        // set our watermark for reference
+        watermarkView.image = pageView.drawnImg
         
         pageIndex += 1
         
@@ -315,6 +348,9 @@ public class BookController: UIViewController, CAAnimationDelegate {
         
         if !animating {
             animating = true
+            
+            // this calls setNeedsDisplay too
+            watermarkView.image = nil
             
             //if we havent ever added this image yet, add it
             if pageIndex >= images.count {
@@ -339,14 +375,14 @@ public class BookController: UIViewController, CAAnimationDelegate {
                 rotatePage(view: first, toLeft: false, isPage: true)
             }
             
-            UIView.animate(withDuration: extraPages.count != 0 ? 2 : 0.2, delay: 0, options: .curveLinear, animations: {
+            UIView.animate(withDuration: extraPages.count != 0 ? 2 : 0.3, delay: 0, options: .curveLinear, animations: {
                 self.pageView.alpha = 0.999
             }) { (done) in
                 self.animateView = UIImageView(frame: self.pageView.frame)
                 self.view.addSubview(self.animateView)
                 self.animateView!.animationImages = self.images
                 self.animateView!.animationDuration = Double(self.images.count) * self.frameDuration
-                self.animateView!.animationRepeatCount = 100
+                self.animateView!.animationRepeatCount = 0
                 self.animateView!.startAnimating()
             }
         } else {
@@ -380,7 +416,7 @@ public class BookController: UIViewController, CAAnimationDelegate {
 //this viewcontroller controls the main simulation
 public class StopMotionController: UIViewController {
     let bookSize = CGSize(width: 240, height: 150)
-    let bookCenter = CGPoint(x: 160, y: 240)
+    let bookCenter = CGPoint(x: 200, y: 240)
     var book: BookController!
     var pageLabel: UILabel!
     
@@ -501,36 +537,38 @@ public class StopMotionController: UIViewController {
         // ensure that watermark no longer visible
         
         if book.images.count > 1 {
-            if !book.animating {
-                //prepare for beginning of animation
-                animateButton.setImage(UIImage(named: "stop.png"), for: .normal)
-                prevPageButton.isEnabled = false
-                nextPageButton.isEnabled = false
-                clearButton.isEnabled = false
-                copyButton.isEnabled = false
-                eraseButton.isEnabled = false
+            DispatchQueue.main.async {
+                if !self.book.animating {
+                    //prepare for beginning of animation
+                    self.animateButton.setImage(UIImage(named: "stop.png"), for: .normal)
+                    self.prevPageButton.isEnabled = false
+                    self.nextPageButton.isEnabled = false
+                    self.clearButton.isEnabled = false
+                    self.copyButton.isEnabled = false
+                    self.eraseButton.isEnabled = false
+                    
+                    //hide page number label
+                    UIView.animate(withDuration: 0.5, animations: {
+                        self.pageLabel.alpha = 0
+                    })
+                } else {
+                    //prepare for end of animation
+                    self.animateButton.setImage(UIImage(named: "animate.png"), for: .normal)
+                    self.prevPageButton.isEnabled = true
+                    self.nextPageButton.isEnabled = true
+                    self.clearButton.isEnabled = true
+                    self.copyButton.isEnabled = true
+                    self.eraseButton.isEnabled = true
+                    
+                    //show page number label
+                    self.pageLabel.text = "Page \(1)/\(self.book.images.count)"
+                    UIView.animate(withDuration: 0.5, animations: {
+                        self.pageLabel.alpha = 1
+                    })
+                }
                 
-                //hide page number label
-                UIView.animate(withDuration: 0.5, animations: {
-                    self.pageLabel.alpha = 0
-                })
-            } else {
-                //prepare for end of animation
-                animateButton.setImage(UIImage(named: "animate.png"), for: .normal)
-                prevPageButton.isEnabled = true
-                nextPageButton.isEnabled = true
-                clearButton.isEnabled = true
-                copyButton.isEnabled = true
-                eraseButton.isEnabled = true
-                
-                //show page number label
-                pageLabel.text = "Page \(1)/\(book.images.count)"
-                UIView.animate(withDuration: 0.5, animations: {
-                    self.pageLabel.alpha = 1
-                })
+                self.book.toggleAnimate()
             }
-            
-            book.toggleAnimate()
         }
     }
     @objc func clearPressed() {
@@ -550,23 +588,32 @@ public class StopMotionController: UIViewController {
     }
 }
 
-
-
-
-
 /// Setup
 
 let viewController = StopMotionController()
 viewController.view.frame = CGRect(x: 0, y: 0, width: 640, height: 480)
 
+
+
 // we can animate custom images and modify them!
 var imageSequence: [UIImage] = []
-for i in 0..<5 {
-    if let image = UIImage(named: "a\(i).png") {
+for i in 1..<87 {
+    if let image = UIImage(named: "wwdcimg \(i).tiff") {
         imageSequence.append(image)
     }
 }
+
+
+// To get a sense of the power of stop motion, uncomment this line to add this pre-made sequence of images to our flipbook
 viewController.book.setImages(imageArr: imageSequence)
+
+// Now turn the last line back into a comment and explore what kinds of illusions of motion you can make with a sequence of images! The following steps will help you get started with flipbook controls
+
+// 1: Click on the page view and draw a medium sized circle in the middle of the top of the page ˚
+// Use the -> next button to flip to page 2. Draw another circle beneath the previous circle's position
+//
+
+
 
 PlaygroundSupport.PlaygroundPage.current.liveView = viewController.view
 
